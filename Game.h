@@ -30,8 +30,11 @@ class Game
 {
     typedef enum { ONGOING, WON, LOST, ABORTED } GameState;
     typedef unsigned char Field;
+    typedef vector<Field> Row;
 
 public:
+    typedef vector<Row> Map;
+
     explicit Game(std::istream& input);
 
     size_t width() const { return width_; }
@@ -41,7 +44,7 @@ public:
     {
         if (on_map(x, y))
         {
-            vector<Field> const& row = map_.at(height() - 1 - y);
+            Row const& row = map_.at(height() - 1 - y);
             return x < row.size() ? row.at(x) : SPACE;
         }
         else
@@ -75,8 +78,10 @@ public:
 
     Game step(char const move) const;
 
+    Map map() const { return map_; }
+
 private:
-    vector<vector<Field> > map_;
+    Map map_;
     size_t width_, height_;
     size_t x_, y_;
     int moves_, lambdas_left_, lambdas_collected_;
@@ -110,7 +115,7 @@ private:
     {
         if (on_map(x, y))
         {
-            vector<Field>& row = map_.at(height() - 1 - y);
+            Row& row = map_.at(height() - 1 - y);
             while (x >= row.size())
                 row.push_back(SPACE);
             row.at(x) = value;
