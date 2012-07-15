@@ -296,8 +296,9 @@ int main(const int argc, char* argv[])
     using std::cin;
     using std::cout;
     using std::endl;
+    using std::string;
 
-    std::string const moves = "LRUDWA";
+    string const moves = "LRUDW";
 
     if (argc > 1)
     {
@@ -305,26 +306,48 @@ int main(const int argc, char* argv[])
 
         if (fp.is_open())
         {
-            Game s(fp);
+            Game game(fp);
             fp.close();
             
-            cout << s << endl;
+            cout << game << endl;
 
-            while (not cin.eof() and s.ongoing())
+            while (not cin.eof() and game.ongoing())
             {
-                char c = cin.get();
+                char c = toupper(cin.get());
                 if (moves.find(c) < moves.length())
                 {
-                    s = s.step(c);
-                    cout << s << endl;
+                    try
+                    {
+                        game = game.step(c);
+                    }
+                    catch (char const* s)
+                    {
+                        cerr << "An error occurred: " << s << endl;
+                    }
+                    cout << game << endl;
+                }
+                else if (c == 'A')
+                {
+                    cout << "Game was aborted" << endl;
+                    return 0;
                 }
             }
-            if (s.won())
+            if (game.won())
                 cout << "Game is won" << endl;
+            else if (game.lost())
+                cout << "Game is lost" << endl;
         }
         else
+        {
             cerr << "Unable to open file" << endl;
+            return 1;
+        }
     }
     else
+    {
         cerr << "Expected a file name." << endl;
+        return 1;
+    }
+
+    return 0;
 }
