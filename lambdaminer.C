@@ -65,7 +65,7 @@ int main(const int argc, char* argv[])
     using std::set;
     using std::string;
 
-    string const moves = "LRUDW";
+    string const moves = "LDRUW";
 
     if (argc > 1)
     {
@@ -90,7 +90,11 @@ int main(const int argc, char* argv[])
                 Game const game = node->game;
 
                 if (best == 0 or game.score() > best->game.score())
+                {
                     best = node;
+                    cerr << "Best score so far: " << game.score() << endl;
+                    cerr << game << endl;
+                }
 
                 if (game.ongoing())
                 {
@@ -99,6 +103,7 @@ int main(const int argc, char* argv[])
                         char const c = moves.at(i);
                         Game const next = game.step(c);
                         Game::Map const m = next.map();
+
                         if (seen.count(m) == 0)
                         {
                             seen.insert(m);

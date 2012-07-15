@@ -61,6 +61,8 @@ public:
 
     int lambdas_collected() const { return lambdas_collected_; }
 
+    int lambdas_left() const { return lambdas_left_; }
+
     int moves() const { return moves_; }
 
     int score() const
