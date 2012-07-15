@@ -1,0 +1,5 @@
+save_state=$(stty -g)
+trap "stty \"$save_state\"" EXIT
+
+stty -icanon -echo
+./simulator $*

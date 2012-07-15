@@ -27,7 +27,7 @@ typedef enum
 
 typedef enum
 {
-    ONGOING, WON, LOST
+    ONGOING, WON, LOST, ABORTED
 }
     GameState;
 
@@ -117,32 +117,67 @@ public:
         return state_ == LOST;
     }
 
+    bool aborted() const
+    {
+        return state_ == ABORTED;
+    }
+
+    int lambdas_collected() const
+    {
+        return lambdas_collected_;
+    }
+
+    int moves() const
+    {
+        return moves_;
+    }
+
+    int score() const
+    {
+        switch (state_)
+        {
+        case ONGOING:
+        case LOST:    return 25 * lambdas_collected() - moves();
+        case ABORTED: return 50 * lambdas_collected() - moves();
+        case WON:     return 75 * lambdas_collected() - moves();
+        default:
+            throw "Illegal game state";
+        }
+    }
+
     Game step(char const move) const
     {
+        if (not ongoing())
+            return *this;
+
         Game tmp = move_robot(move);
         Game next(tmp);
 
-        for (size_t y = 0; y < height(); ++y)
+        if (not aborted())
         {
-            for (size_t x = 0; x < width(); ++x)
+            for (size_t y = 0; y < height(); ++y)
             {
-                if (tmp.at(x, y) == ROCK)
+                for (size_t x = 0; x < width(); ++x)
                 {
-                    if (tmp.empty(x, y-1))
-                        next.rock_fall(x, y, x, y-1);
-                    else if (tmp.at(x, y-1) == ROCK)
+                    if (tmp.at(x, y) == ROCK)
                     {
-                        if (tmp.empty(x+1, y) and tmp.empty(x+1, y-1))
-                            next.rock_fall(x, y, x+1, y-1);
-                        else if (tmp.empty(x-1, y) and tmp.empty(x-1, y-1))
-                            next.rock_fall(x, y, x-1, y-1);
+                        if (tmp.empty(x, y-1))
+                            next.rock_fall(x, y, x, y-1);
+                        else if (tmp.at(x, y-1) == ROCK)
+                        {
+                            if (tmp.empty(x+1, y) and tmp.empty(x+1, y-1))
+                                next.rock_fall(x, y, x+1, y-1);
+                            else if (tmp.empty(x-1, y) and tmp.empty(x-1, y-1))
+                                next.rock_fall(x, y, x-1, y-1);
+                        }
+                        else if (tmp.at(x, y-1) == LAMBDA)
+                            if (tmp.empty(x+1, y) and tmp.empty(x+1, y-1))
+                                next.rock_fall(x, y, x+1, y-1);
                     }
-                    else if (tmp.at(x, y-1) == LAMBDA)
-                        if (tmp.empty(x+1, y) and tmp.empty(x+1, y-1))
-                            next.rock_fall(x, y, x+1, y-1);
+                    else if (tmp.at(x, y) == LIFT_CLOSED and 
+                             tmp.lambdas_left_ == 0)
+                        next.set(x, y, LIFT_OPEN);
                 }
-                else if (tmp.at(x, y) == LIFT_CLOSED and tmp.lambdas_left_ == 0)
-                    next.set(x, y, LIFT_OPEN);
             }
         }
 
@@ -213,11 +248,18 @@ private:
         case 'R': ++xn; break;
         case 'U': ++yn; break;
         case 'D': --yn; break;
-        case 'W': break;
+        case 'W':
+        case 'A': break;
         default:
             throw "Illegal robot move.";
         }
         
+        if (move == 'A')
+        {
+            next.state_ = ABORTED;
+            return next;
+        }
+
         ++next.moves_;
 
         bool good;
@@ -298,7 +340,7 @@ int main(const int argc, char* argv[])
     using std::endl;
     using std::string;
 
-    string const moves = "LRUDW";
+    string const moves = "LRUDWA";
 
     if (argc > 1)
     {
@@ -325,17 +367,19 @@ int main(const int argc, char* argv[])
                         cerr << "An error occurred: " << s << endl;
                     }
                     cout << game << endl;
-                }
-                else if (c == 'A')
-                {
-                    cout << "Game was aborted" << endl;
-                    return 0;
+                    cout << "Moves:   " << game.moves() << endl;
+                    cout << "Lambdas: " << game.lambdas_collected() << endl;
+                    cout << "Score:   " << game.score() << endl;
                 }
             }
             if (game.won())
-                cout << "Game is won" << endl;
+                cout << "Game was won" << endl;
             else if (game.lost())
-                cout << "Game is lost" << endl;
+                cout << "Game was lost" << endl;
+            else if (game.aborted())
+                cout << "Game was aborted" << endl;
+            else
+                cout << "Game was interrupted" << endl;
         }
         else
         {
