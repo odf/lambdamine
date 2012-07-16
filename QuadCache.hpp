@@ -13,6 +13,7 @@
 #ifndef LAMBDAMINER_QUADCACHE_HPP
 #define LAMBDAMINER_QUADCACHE_HPP 1
 
+#include <iostream>
 #include <vector>
 #include <unordered_set>
 
@@ -31,23 +32,55 @@ class QuadCache
 
     struct Node
     {
+        size_t extend;
         Entry se, sw, ne, nw;
     };
 
     struct Hash
     {
-        std::size_t operator()(Node const& n) const
+        std::size_t operator()(Node* n) const
         {
             size_t h = 0;
-            h = h * 101 + (*(size_t*)&n.se);
-            h = h * 101 + (*(size_t*)&n.sw);
-            h = h * 101 + (*(size_t*)&n.ne);
-            h = h * 101 + (*(size_t*)&n.nw);
+
+            if (n->extend == 2)
+            {
+                h = h * 101 + n->se.val;
+                h = h * 101 + n->sw.val;
+                h = h * 101 + n->ne.val;
+                h = h * 101 + n->nw.val;
+            }
+            else
+            {
+                h = h * 101 + (size_t)n->se.node;
+                h = h * 101 + (size_t)n->sw.node;
+                h = h * 101 + (size_t)n->ne.node;
+                h = h * 101 + (size_t)n->nw.node;
+            }
             return h;
         }
     };
 
-    typedef std::unordered_set<Node, Hash> Bucket;
+    struct Equal
+    {
+        bool operator()(Node* n, Node* m) const
+        {
+            if (n->extend != m->extend)
+                return false;
+
+            if (n->extend == 2)
+                return (n->se.val == m->se.val and
+                        n->sw.val == m->sw.val and
+                        n->ne.val == m->ne.val and
+                        n->nw.val == m->nw.val);
+            else
+                return (n->se.node == m->se.node and
+                        n->sw.node == m->sw.node and
+                        n->ne.node == m->ne.node and
+                        n->nw.node == m->nw.node);
+        }
+    };
+
+    typedef std::unordered_set<Node*, Hash, Equal> Bucket;
 
 public:
     explicit QuadCache(std::vector<std::vector<ValueType> > const& data,
@@ -74,6 +107,15 @@ public:
     ValueType at(size_t const x, size_t const y) const
     {
         return find(original_, 0, extend_, x, y);
+    }
+
+    void info() const
+    {
+        std::cerr << "size = " << width_ << "x" << height_ << std::endl;
+        std::cerr << "extend = " << extend_ << std::endl;
+        for (size_t i = 0; i < depth_; ++i)
+            std::cerr << buckets_.at(i).size() << " squares at level " << i
+                      << std::endl;
     }
 
 private:
@@ -118,7 +160,14 @@ private:
             nw.node = build(data, level+1, e, x0+e, y0+e);
         }
 
-        return new Node({ se, sw, ne, nw });
+        Node* result = new Node({ extend, se, sw, ne, nw });
+        std::pair<typename Bucket::iterator, bool> res =
+            buckets_.at(level).insert(result);
+
+        if (res.second)
+            return result;
+        else
+            return *res.first;
     }
 
     ValueType find(Node const* const node,

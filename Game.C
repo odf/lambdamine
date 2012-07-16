@@ -74,6 +74,7 @@ Game::Game(std::istream& input)
                 x_ = x, y_ = y;
 
     QuadCache<Field> qc(map_, SPACE);
+    qc.info();
 }
 
 Game Game::step(char const move) const
