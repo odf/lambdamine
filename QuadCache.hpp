@@ -32,7 +32,7 @@ class QuadCache
 
     struct Node
     {
-        size_t extend;
+        size_t extent;
         Entry se, sw, ne, nw;
     };
 
@@ -42,7 +42,7 @@ class QuadCache
         {
             size_t h = 0;
 
-            if (n->extend == 2)
+            if (n->extent == 2)
             {
                 h = h * 101 + n->se.val;
                 h = h * 101 + n->sw.val;
@@ -64,10 +64,10 @@ class QuadCache
     {
         bool operator()(Node* n, Node* m) const
         {
-            if (n->extend != m->extend)
+            if (n->extent != m->extent)
                 return false;
 
-            if (n->extend == 2)
+            if (n->extent == 2)
                 return (n->se.val == m->se.val and
                         n->sw.val == m->sw.val and
                         n->ne.val == m->ne.val and
@@ -88,21 +88,35 @@ public:
     public:
         ValueType at(size_t const x, size_t const y) const
         {
-            return parent_->find(root_, 0, parent_->extend_, x, y);
+            return parent_->find(root_, 0, parent_->extent_, x, y);
+        }
+
+        Map()
+        {
+        }
+
+        Map set(size_t const x, size_t const y, ValueType val) const
+        {
+            return Map(parent_,
+                       parent_->set(root_, 0, parent_->extent_, x, y, val));
         }
 
     private:
         friend class QuadCache;
 
-        QuadCache const* const parent_;
-        Node const* const root_;
+        QuadCache* parent_;
+        Node const* root_;
 
-        Map(QuadCache const* const parent, Node const* const root)
+        Map(QuadCache* const parent, Node const* const root)
             : parent_(parent),
               root_(root)
         {
         }
     };
+
+    QuadCache()
+    {
+    }
 
     explicit QuadCache(std::vector<std::vector<ValueType> > const& data,
                        ValueType const filler)
@@ -114,18 +128,18 @@ public:
             width_ = std::max(width_, data.at(i).size());
 
         depth_ = 1;
-        extend_ = 2;
-        while (extend_ < height_ or extend_ < width_)
+        extent_ = 2;
+        while (extent_ < height_ or extent_ < width_)
         {
             ++depth_;
-            extend_ <<= 1;
+            extent_ <<= 1;
         }
 
         buckets_ = std::vector<Bucket>(depth_);
-        original_ = build(data, 0, extend_, 0, 0);
+        original_ = build(data, 0, extent_, 0, 0);
     }
 
-    Map original() const
+    Map original()
     {
         return Map(this, original_);
     }
@@ -133,7 +147,7 @@ public:
     void info() const
     {
         std::cerr << "size = " << width_ << "x" << height_ << std::endl;
-        std::cerr << "extend = " << extend_ << std::endl;
+        std::cerr << "extent = " << extent_ << std::endl;
         for (size_t i = 0; i < depth_; ++i)
             std::cerr << buckets_.at(i).size() << " squares at level " << i
                       << std::endl;
@@ -144,7 +158,7 @@ private:
     size_t width_;
     size_t height_;
     size_t depth_;
-    size_t extend_;
+    size_t extent_;
     std::vector<Bucket> buckets_;
     Node* original_;
 
@@ -160,12 +174,23 @@ private:
         }
     }
 
+    Node* canonical(Node* node, size_t const level)
+    {
+        std::pair<typename Bucket::iterator, bool> result =
+            buckets_.at(level).insert(node);
+
+        if (result.second)
+            return node;
+        else
+            return *result.first;
+    }
+
     Node* build(std::vector<std::vector<ValueType> > const& data,
-                size_t const level, size_t const extend,
+                size_t const level, size_t const extent,
                 size_t const x0, size_t const y0)
     {
         Entry se, sw, ne, nw;
-        if (extend == 2)
+        if (extent == 2)
         {
             se.val = get(data, x0  , y0  );
             sw.val = get(data, x0+1, y0  );
@@ -174,28 +199,21 @@ private:
         }
         else
         {
-            size_t const e = extend >> 1;
+            size_t const e = extent >> 1;
             se.node = build(data, level+1, e, x0  , y0  );
             sw.node = build(data, level+1, e, x0+e, y0  );
             ne.node = build(data, level+1, e, x0  , y0+e);
             nw.node = build(data, level+1, e, x0+e, y0+e);
         }
 
-        Node* result = new Node({ extend, se, sw, ne, nw });
-        std::pair<typename Bucket::iterator, bool> res =
-            buckets_.at(level).insert(result);
-
-        if (res.second)
-            return result;
-        else
-            return *res.first;
+        return canonical(new Node({ extent, se, sw, ne, nw }), level);
     }
 
     ValueType find(Node const* const node,
-                   size_t const level, size_t const extend,
+                   size_t const level, size_t const extent,
                    size_t const x, size_t const y) const
     {
-        size_t const e = extend >> 1;
+        size_t const e = extent >> 1;
         Entry entry;
 
         if (y < e)
@@ -203,10 +221,46 @@ private:
         else
             entry = (x < e) ? node->ne : node->nw;
 
-        if (extend == 2)
+        if (extent == 2)
             return entry.val;
         else
             return find(entry.node, level+1, e, x % e, y % e);
+    }
+
+    Node* set(Node const* const node,
+              size_t const level, size_t const extent,
+              size_t const x, size_t const y, ValueType const val)
+    {
+        size_t const e = extent >> 1;
+        Node* result = new Node(*node);
+        Entry entry;
+
+        if (y < e)
+            entry = (x < e) ? node->se : node->sw;
+        else
+            entry = (x < e) ? node->ne : node->nw;
+
+        if (extent == 2)
+            entry.val = val;
+        else
+            entry.node = set(entry.node, level+1, e, x % e, y % e, val);
+
+        if (y < e)
+        {
+            if (x < e)
+                result->se = entry;
+            else
+                result->sw = entry;
+        }
+        else
+        {
+            if (x < e)
+                result->ne = entry;
+            else
+                result->nw = entry;
+        }
+
+        return canonical(result, level);
     }
 };
 

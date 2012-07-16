@@ -12,7 +12,6 @@
 
 #include <stack>
 
-#include "QuadCache.hpp"
 #include "Game.h"
 
 Game::Game(std::istream& input)
@@ -24,7 +23,9 @@ Game::Game(std::istream& input)
       moves_(0),
       lambdas_left_(0),
       lambdas_collected_(0),
-      state_(ONGOING)
+      state_(ONGOING),
+      cache_(),
+      qc_map_()
 {
     std::string line;
     std::vector<Field> row;
@@ -73,13 +74,13 @@ Game::Game(std::istream& input)
             if (at(x, y) == ROBOT)
                 x_ = x, y_ = y;
 
-    QuadCache<Field> qc(map_, SPACE);
-    qc.info();
+    cache_ = QuadCache<Field>(map_, SPACE);
+    cache_.info();
 
-    QuadCache<Field>::Map m = qc.original();
+    qc_map_ = cache_.original();
     for (size_t y = 0; y < height(); ++y)
         for (size_t x = 0; x < width(); ++x)
-            if (at(x, y) != m.at(x, y))
+            if (at(x, y) != qc_map_.at(x, y))
                 std::cerr << "Oops!" << std::endl;
 }
 

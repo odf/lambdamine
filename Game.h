@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+#include "QuadCache.hpp"
+
 using std::vector;
 
 typedef enum
@@ -89,6 +91,9 @@ private:
     int moves_, lambdas_left_, lambdas_collected_;
     GameState state_;
 
+    QuadCache<Field> cache_;
+    QuadCache<Field>::Map qc_map_;
+
     bool on_map(size_t const x, size_t const y) const
     {
         return x >= 0 and x < width() and y >= 0 and y < height();
@@ -124,6 +129,12 @@ private:
         }
         else
             throw "Illegal coordinates for set() call.";
+
+        qc_map_ = qc_map_.set(x, y, value);
+        for (size_t y = 0; y < height(); ++y)
+            for (size_t x = 0; x < width(); ++x)
+                if (at(x, y) != qc_map_.at(x, y))
+                    std::cerr << "Oops!" << std::endl;
     }
 
     void rock_fall(size_t const xo, size_t const yo,
