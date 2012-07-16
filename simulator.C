@@ -49,10 +49,11 @@ int main(const int argc, char* argv[])
                     {
                         cerr << "An error occurred: " << s << endl;
                     }
-                    cout << game << endl;
-                    cout << "Moves:   " << game.moves() << endl;
-                    cout << "Lambdas: " << game.lambdas_collected() << endl;
-                    cout << "Score:   " << game.score() << endl;
+                    cout << game
+                         << "Moves:   " << game.moves() << endl
+                         << "Lambdas: " << game.lambdas_collected() << endl
+                         << "Score:   " << game.score() << endl
+                         << endl;
                 }
             }
             if (game.won())

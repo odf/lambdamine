@@ -91,9 +91,12 @@ int main(const int argc, char* argv[])
 
                 if (best == 0 or game.score() > best->game.score())
                 {
+                    if (game.score() > 0)
+                    {
+                        cerr << "Best score so far: " << game.score() << endl;
+                        cerr << game << endl;
+                    }
                     best = node;
-                    cerr << "Best score so far: " << game.score() << endl;
-                    cerr << game << endl;
                 }
 
                 if (game.ongoing())
