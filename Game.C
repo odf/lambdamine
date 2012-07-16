@@ -75,6 +75,12 @@ Game::Game(std::istream& input)
 
     QuadCache<Field> qc(map_, SPACE);
     qc.info();
+
+    QuadCache<Field>::Map m = qc.original();
+    for (size_t y = 0; y < height(); ++y)
+        for (size_t x = 0; x < width(); ++x)
+            if (at(x, y) != m.at(x, y))
+                std::cerr << "Oops!" << std::endl;
 }
 
 Game Game::step(char const move) const

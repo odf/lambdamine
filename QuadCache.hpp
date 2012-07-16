@@ -83,6 +83,27 @@ class QuadCache
     typedef std::unordered_set<Node*, Hash, Equal> Bucket;
 
 public:
+    class Map
+    {
+    public:
+        ValueType at(size_t const x, size_t const y) const
+        {
+            return parent_->find(root_, 0, parent_->extend_, x, y);
+        }
+
+    private:
+        friend class QuadCache;
+
+        QuadCache const* const parent_;
+        Node const* const root_;
+
+        Map(QuadCache const* const parent, Node const* const root)
+            : parent_(parent),
+              root_(root)
+        {
+        }
+    };
+
     explicit QuadCache(std::vector<std::vector<ValueType> > const& data,
                        ValueType const filler)
     {
@@ -104,9 +125,9 @@ public:
         original_ = build(data, 0, extend_, 0, 0);
     }
 
-    ValueType at(size_t const x, size_t const y) const
+    Map original() const
     {
-        return find(original_, 0, extend_, x, y);
+        return Map(this, original_);
     }
 
     void info() const
