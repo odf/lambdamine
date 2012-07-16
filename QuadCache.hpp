@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_set>
+#include <tr1/memory>
 
 using std::size_t;
 
@@ -24,10 +25,12 @@ class QuadCache
 {
     struct Node;
 
-    union Entry
+    typedef std::tr1::shared_ptr<Node> NodePtr;
+
+    struct Entry
     {
         ValueType val;
-        Node* node;
+        NodePtr node;
     };
 
     struct Node
@@ -38,7 +41,7 @@ class QuadCache
 
     struct Hash
     {
-        std::size_t operator()(Node* n) const
+        std::size_t operator()(NodePtr n) const
         {
             size_t h = 0;
 
@@ -51,10 +54,10 @@ class QuadCache
             }
             else
             {
-                h = h * 101 + (size_t)n->se.node;
-                h = h * 101 + (size_t)n->sw.node;
-                h = h * 101 + (size_t)n->ne.node;
-                h = h * 101 + (size_t)n->nw.node;
+                h = h * 101 + (size_t)n->se.node.get();
+                h = h * 101 + (size_t)n->sw.node.get();
+                h = h * 101 + (size_t)n->ne.node.get();
+                h = h * 101 + (size_t)n->nw.node.get();
             }
             return h;
         }
@@ -62,7 +65,7 @@ class QuadCache
 
     struct Equal
     {
-        bool operator()(Node* n, Node* m) const
+        bool operator()(NodePtr n, NodePtr m) const
         {
             if (n->extent != m->extent)
                 return false;
@@ -108,29 +111,30 @@ public:
 
         ValueType at(size_t const x, size_t const y) const
         {
-            return parent_->find(root_, 0, parent_->extent_, x, y);
+            return parent_.find(root_, 0, parent_.extent_, x, y);
         }
 
-        Map set(size_t const x, size_t const y, ValueType val) const
+        Map set(size_t const x, size_t const y, ValueType val)
         {
             return Map(parent_,
-                       parent_->set(root_, 0, parent_->extent_, x, y, val));
+                       parent_.set(root_, 0, parent_.extent_, x, y, val));
         }
 
     private:
         friend class QuadCache;
 
-        QuadCache* parent_;
-        Node* root_;
+        QuadCache parent_;
+        NodePtr root_;
 
-        Map(QuadCache* const parent, Node* const root)
+        Map(QuadCache parent, NodePtr const root)
             : parent_(parent),
               root_(root)
         {
         }
     };
 
-    typedef std::unordered_set<Node*, Hash, Equal> Bucket;
+    typedef std::unordered_set<NodePtr, Hash, Equal> Bucket;
+    typedef std::tr1::shared_ptr<std::vector<Bucket> > BucketList;
 
     QuadCache()
     {
@@ -153,13 +157,13 @@ public:
             extent_ <<= 1;
         }
 
-        buckets_ = new std::vector<Bucket>(depth_);
+        buckets_ = BucketList(new std::vector<Bucket>(depth_));
         original_ = build(data, 0, extent_, 0, 0);
     }
 
     Map original()
     {
-        return Map(this, original_);
+        return Map(*this, original_);
     }
 
     void info() const
@@ -175,8 +179,8 @@ private:
     size_t height_;
     size_t depth_;
     size_t extent_;
-    std::vector<Bucket>* buckets_;
-    Node* original_;
+    BucketList buckets_;
+    NodePtr original_;
 
     ValueType get(std::vector<std::vector<ValueType> > const& data,
                   size_t const x, size_t const y) const
@@ -190,7 +194,7 @@ private:
         }
     }
 
-    Node* canonical(Node* node, size_t const level)
+    NodePtr canonical(NodePtr node, size_t const level)
     {
         std::pair<typename Bucket::iterator, bool> result =
             buckets_->at(level).insert(node);
@@ -201,7 +205,7 @@ private:
             return *result.first;
     }
 
-    Node* build(std::vector<std::vector<ValueType> > const& data,
+    NodePtr build(std::vector<std::vector<ValueType> > const& data,
                 size_t const level, size_t const extent,
                 size_t const x0, size_t const y0)
     {
@@ -222,10 +226,10 @@ private:
             nw.node = build(data, level+1, e, x0+e, y0+e);
         }
 
-        return canonical(new Node({ extent, se, sw, ne, nw }), level);
+        return canonical(NodePtr(new Node({ extent, se, sw, ne, nw })), level);
     }
 
-    ValueType find(Node const* const node,
+    ValueType find(NodePtr node,
                    size_t const level, size_t const extent,
                    size_t const x, size_t const y) const
     {
@@ -243,12 +247,13 @@ private:
             return find(entry.node, level+1, e, x % e, y % e);
     }
 
-    Node* set(Node const* const node,
-              size_t const level, size_t const extent,
-              size_t const x, size_t const y, ValueType const val)
+    NodePtr set(NodePtr node,
+                size_t const level, size_t const extent,
+                size_t const x, size_t const y, ValueType const val)
     {
         size_t const e = extent >> 1;
-        Node* result = new Node(*node);
+        NodePtr result(new Node({ node->extent,
+                        node->se, node->sw, node->ne, node->nw }));
         Entry entry;
 
         if (y < e)

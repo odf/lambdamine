@@ -15,21 +15,26 @@
 #include <set>
 #include <stack>
 #include <string>
+#include <tr1/memory>
 
 #include "Game.h"
+
+struct Node;
+
+typedef std::tr1::shared_ptr<Node> NodePtr;
 
 struct Node
 {
     Game game;
     char move;
-    Node const* const previous;
+    NodePtr previous;
 };
 
-std::string sequence_of_moves(Node const* const node)
+std::string sequence_of_moves(NodePtr node)
 {
     std::stack<char> moves;
 
-    Node const* current = node;
+    NodePtr current = node;
     while (current->previous != 0)
     {
         moves.push(current->move);
@@ -69,16 +74,16 @@ int main(const int argc, char* argv[])
             Game const start(fp);
             fp.close();
 
-            Node const* best = 0;
-            queue<Node*> q;
+            NodePtr best;
+            queue<NodePtr> q;
             Game::Map::Set seen;
 
-            q.push(new Node({ start, 0, 0 }));
+            q.push(NodePtr(new Node({ start, 0, NodePtr() })));
             seen.insert(start.map());
 
             while (not q.empty())
             {
-                Node const* const node = q.front();
+                NodePtr node = q.front();
                 q.pop();
                 Game const game = node->game;
 
@@ -105,7 +110,7 @@ int main(const int argc, char* argv[])
                         if (seen.count(m) == 0)
                         {
                             seen.insert(m);
-                            q.push(new Node({ next, c, node }));
+                            q.push(NodePtr(new Node({ next, c, node })));
                         }
                     }
                 }
