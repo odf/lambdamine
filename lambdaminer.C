@@ -94,6 +94,8 @@ int main(const int argc, char* argv[])
                         cerr << "Best score so far: " << game.score() << endl
                              << game;
                         game.cache_info();
+                        cerr << "q.size() = " << q.size() << endl;
+                        cerr << "seen.size() = " << seen.size() << endl;
                         cerr << endl;
                     }
                     best = node;
