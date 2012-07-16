@@ -4,7 +4,7 @@
  *
  *  File: Game.h
  *  Project: lambdaminer (potential ICFP 2012 contest entry)
- *  Date: 2012-07-15
+ *  Date: 2012-07-16
  *
  *  Declaration of the Game class.
  *
@@ -44,7 +44,7 @@ public:
     {
         if (on_map(x, y))
         {
-            Row const& row = map_.at(height() - 1 - y);
+            Row const& row = map_.at(y);
             return x < row.size() ? row.at(x) : SPACE;
         }
         else
@@ -117,7 +117,7 @@ private:
     {
         if (on_map(x, y))
         {
-            Row& row = map_.at(height() - 1 - y);
+            Row& row = map_.at(y);
             while (x >= row.size())
                 row.push_back(SPACE);
             row.at(x) = value;

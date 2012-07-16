@@ -1,4 +1,4 @@
-CXXWARNS = -Wall -pedantic
+CXXWARNS = -Wall -pedantic -std=c++0x
 CXXOPTS  = -g -O3 -I.
 CXXFLAGS = $(CXXWARNS) $(CXXOPTS)
 PROGRAMS = lambdaminer simulator
@@ -21,5 +21,6 @@ depend:
 	makedepend -Y Game.C lambdaminer.C simulator.C
 # DO NOT DELETE
 
-Game.o: Game.h
+Game.o: QuadCache.hpp Game.h
+lambdaminer.o: Game.h
 simulator.o: Game.h

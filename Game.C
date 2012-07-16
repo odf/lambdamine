@@ -4,12 +4,15 @@
  *
  *  File: Game.C
  *  Project: lambdaminer (potential ICFP 2012 contest entry)
- *  Date: 2012-07-15
+ *  Date: 2012-07-16
  *
  *  Implementation of the Game class.
  *
  */
 
+#include <stack>
+
+#include "QuadCache.hpp"
 #include "Game.h"
 
 Game::Game(std::istream& input)
@@ -24,7 +27,8 @@ Game::Game(std::istream& input)
       state_(ONGOING)
 {
     std::string line;
-    vector<Field> row;
+    std::vector<Field> row;
+    std::stack<Row> data;
 
     while (not input.eof())
     {
@@ -53,14 +57,23 @@ Game::Game(std::istream& input)
             }
         }
         width_ = std::max(width_, row.size());
-        map_.push_back(vector<Field>(row));
+        data.push(row);
     }
+
+    while (not data.empty())
+    {
+        map_.push_back(data.top());
+        data.pop();
+    }
+
     height_ = map_.size();
 
     for (size_t y = 0; y < height(); ++y)
         for (size_t x = 0; x < width(); ++x)
             if (at(x, y) == ROBOT)
                 x_ = x, y_ = y;
+
+    QuadCache<Field> qc(map_, SPACE);
 }
 
 Game Game::step(char const move) const

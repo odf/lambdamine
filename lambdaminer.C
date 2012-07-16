@@ -4,7 +4,7 @@
  *
  *  File: lambdaminer.C
  *  Project: lambdaminer (potential ICFP 2012 contest entry)
- *  Date: 2012-07-15
+ *  Date: 2012-07-16
  *
  *  Reads a map and emits a sequence of robot moves.
  *
@@ -20,13 +20,6 @@
 
 struct Node
 {
-    Node(Game game, char const move, Node const* const previous)
-        : game(game),
-          move(move),
-          previous(previous)
-    {
-    }
-
     Game game;
     char move;
     Node const* const previous;
@@ -80,7 +73,7 @@ int main(const int argc, char* argv[])
             queue<Node*> q;
             set<Game::Map> seen;
 
-            q.push(new Node(start, 0, 0));
+            q.push(new Node({ start, 0, 0 }));
             seen.insert(start.map());
 
             while (not q.empty())
@@ -110,7 +103,7 @@ int main(const int argc, char* argv[])
                         if (seen.count(m) == 0)
                         {
                             seen.insert(m);
-                            q.push(new Node(next, c, node));
+                            q.push(new Node({ next, c, node }));
                         }
                     }
                 }
