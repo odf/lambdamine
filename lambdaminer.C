@@ -71,7 +71,7 @@ int main(const int argc, char* argv[])
 
             Node const* best = 0;
             queue<Node*> q;
-            set<Game::Map> seen;
+            Game::Map::Set seen;
 
             q.push(new Node({ start, 0, 0 }));
             seen.insert(start.map());
@@ -86,8 +86,10 @@ int main(const int argc, char* argv[])
                 {
                     if (game.score() > 0)
                     {
-                        cerr << "Best score so far: " << game.score() << endl;
-                        cerr << game << endl;
+                        cerr << "Best score so far: " << game.score() << endl
+                             << game;
+                        game.cache_info();
+                        cerr << endl;
                     }
                     best = node;
                 }

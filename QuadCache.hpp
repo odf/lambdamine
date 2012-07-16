@@ -80,19 +80,35 @@ class QuadCache
         }
     };
 
-    typedef std::unordered_set<Node*, Hash, Equal> Bucket;
-
 public:
     class Map
     {
+        struct MHash
+        {
+            std::size_t operator()(Map const m) const
+            {
+                return Hash()(m.root_);
+            }
+        };
+
+        struct MEqual
+        {
+            std::size_t operator()(Map const m, Map const o) const
+            {
+                return Equal()(m.root_, o.root_);
+            }
+        };
+
     public:
+        typedef std::unordered_set<Map, MHash, MEqual> Set;
+        
+        Map()
+        {
+        }
+
         ValueType at(size_t const x, size_t const y) const
         {
             return parent_->find(root_, 0, parent_->extent_, x, y);
-        }
-
-        Map()
-        {
         }
 
         Map set(size_t const x, size_t const y, ValueType val) const
@@ -105,14 +121,16 @@ public:
         friend class QuadCache;
 
         QuadCache* parent_;
-        Node const* root_;
+        Node* root_;
 
-        Map(QuadCache* const parent, Node const* const root)
+        Map(QuadCache* const parent, Node* const root)
             : parent_(parent),
               root_(root)
         {
         }
     };
+
+    typedef std::unordered_set<Node*, Hash, Equal> Bucket;
 
     QuadCache()
     {
@@ -135,7 +153,7 @@ public:
             extent_ <<= 1;
         }
 
-        buckets_ = std::vector<Bucket>(depth_);
+        buckets_ = new std::vector<Bucket>(depth_);
         original_ = build(data, 0, extent_, 0, 0);
     }
 
@@ -146,10 +164,8 @@ public:
 
     void info() const
     {
-        std::cerr << "size = " << width_ << "x" << height_ << std::endl;
-        std::cerr << "extent = " << extent_ << std::endl;
         for (size_t i = 0; i < depth_; ++i)
-            std::cerr << buckets_.at(i).size() << " squares at level " << i
+            std::cerr << buckets_->at(i).size() << " squares at level " << i
                       << std::endl;
     }
 
@@ -159,7 +175,7 @@ private:
     size_t height_;
     size_t depth_;
     size_t extent_;
-    std::vector<Bucket> buckets_;
+    std::vector<Bucket>* buckets_;
     Node* original_;
 
     ValueType get(std::vector<std::vector<ValueType> > const& data,
@@ -177,7 +193,7 @@ private:
     Node* canonical(Node* node, size_t const level)
     {
         std::pair<typename Bucket::iterator, bool> result =
-            buckets_.at(level).insert(node);
+            buckets_->at(level).insert(node);
 
         if (result.second)
             return node;

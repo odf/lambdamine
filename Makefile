@@ -21,6 +21,6 @@ depend:
 	makedepend -Y Game.C lambdaminer.C simulator.C
 # DO NOT DELETE
 
-Game.o: QuadCache.hpp Game.h
-lambdaminer.o: Game.h
-simulator.o: Game.h
+Game.o: Game.h QuadCache.hpp
+lambdaminer.o: Game.h QuadCache.hpp
+simulator.o: Game.h QuadCache.hpp

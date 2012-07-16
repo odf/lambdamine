@@ -35,7 +35,7 @@ class Game
     typedef vector<Field> Row;
 
 public:
-    typedef vector<Row> Map;
+    typedef QuadCache<Field>::Map Map;
 
     explicit Game(std::istream& input);
 
@@ -44,13 +44,7 @@ public:
 
     Field at(size_t x, size_t y) const
     {
-        if (on_map(x, y))
-        {
-            Row const& row = map_.at(y);
-            return x < row.size() ? row.at(x) : SPACE;
-        }
-        else
-            return WALL;
+        return map_.at(x, y);
     }
 
     bool ongoing() const { return state_ == ONGOING; }
@@ -84,15 +78,15 @@ public:
 
     Map map() const { return map_; }
 
+    void cache_info() const { cache_.info(); }
+
 private:
+    QuadCache<Field> cache_;
     Map map_;
     size_t width_, height_;
     size_t x_, y_;
     int moves_, lambdas_left_, lambdas_collected_;
     GameState state_;
-
-    QuadCache<Field> cache_;
-    QuadCache<Field>::Map qc_map_;
 
     bool on_map(size_t const x, size_t const y) const
     {
@@ -120,21 +114,7 @@ private:
 
     void set(size_t const x, size_t const y, Field const value)
     {
-        if (on_map(x, y))
-        {
-            Row& row = map_.at(y);
-            while (x >= row.size())
-                row.push_back(SPACE);
-            row.at(x) = value;
-        }
-        else
-            throw "Illegal coordinates for set() call.";
-
-        qc_map_ = qc_map_.set(x, y, value);
-        for (size_t y = 0; y < height(); ++y)
-            for (size_t x = 0; x < width(); ++x)
-                if (at(x, y) != qc_map_.at(x, y))
-                    std::cerr << "Oops!" << std::endl;
+        map_ = map_.set(x, y, value);
     }
 
     void rock_fall(size_t const xo, size_t const yo,

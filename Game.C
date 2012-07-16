@@ -15,7 +15,8 @@
 #include "Game.h"
 
 Game::Game(std::istream& input)
-    : map_(0),
+    : cache_(),
+      map_(),
       width_(0),
       height_(0),
       x_(0),
@@ -23,13 +24,12 @@ Game::Game(std::istream& input)
       moves_(0),
       lambdas_left_(0),
       lambdas_collected_(0),
-      state_(ONGOING),
-      cache_(),
-      qc_map_()
+      state_(ONGOING)
 {
     std::string line;
     std::vector<Field> row;
-    std::stack<Row> data;
+    std::stack<Row> stack;
+    std::vector<Row> data;
 
     while (not input.eof())
     {
@@ -58,30 +58,24 @@ Game::Game(std::istream& input)
             }
         }
         width_ = std::max(width_, row.size());
-        data.push(row);
+        stack.push(row);
     }
 
-    while (not data.empty())
+    while (not stack.empty())
     {
-        map_.push_back(data.top());
-        data.pop();
+        data.push_back(stack.top());
+        stack.pop();
     }
 
-    height_ = map_.size();
+    height_ = data.size();
+
+    cache_ = QuadCache<Field>(data, SPACE);
+    map_ = cache_.original();
 
     for (size_t y = 0; y < height(); ++y)
         for (size_t x = 0; x < width(); ++x)
             if (at(x, y) == ROBOT)
                 x_ = x, y_ = y;
-
-    cache_ = QuadCache<Field>(map_, SPACE);
-    cache_.info();
-
-    qc_map_ = cache_.original();
-    for (size_t y = 0; y < height(); ++y)
-        for (size_t x = 0; x < width(); ++x)
-            if (at(x, y) != qc_map_.at(x, y))
-                std::cerr << "Oops!" << std::endl;
 }
 
 Game Game::step(char const move) const
