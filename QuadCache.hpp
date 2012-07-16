@@ -196,13 +196,18 @@ private:
 
     NodePtr canonical(NodePtr node, size_t const level)
     {
-        std::pair<typename Bucket::iterator, bool> result =
-            buckets_->at(level).insert(node);
-
-        if (result.second)
+        if (level == 0)
             return node;
         else
-            return *result.first;
+        {
+            std::pair<typename Bucket::iterator, bool> result =
+                buckets_->at(level).insert(node);
+
+            if (result.second)
+                return node;
+            else
+                return *result.first;
+        }
     }
 
     NodePtr build(std::vector<std::vector<ValueType> > const& data,
