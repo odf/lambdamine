@@ -30,6 +30,14 @@ struct Node
     NodePtr previous;
 };
 
+struct CompareNodes
+{
+    bool operator()(NodePtr a, NodePtr b)
+    {
+        return a->game.score() < b->game.score();
+    }
+};
+
 std::string sequence_of_moves(NodePtr node)
 {
     std::stack<char> moves;
@@ -59,7 +67,7 @@ int main(const int argc, char* argv[])
     using std::cin;
     using std::cout;
     using std::endl;
-    using std::queue;
+    using std::priority_queue;
     using std::set;
     using std::string;
 
@@ -75,7 +83,7 @@ int main(const int argc, char* argv[])
             fp.close();
 
             NodePtr best;
-            queue<NodePtr> q;
+            priority_queue<NodePtr, vector<NodePtr>, CompareNodes> q;
             Game::Map::Set seen;
 
             q.push(NodePtr(new Node({ start, 0, NodePtr() })));
@@ -83,7 +91,7 @@ int main(const int argc, char* argv[])
 
             while (not q.empty())
             {
-                NodePtr node = q.front();
+                NodePtr node = q.top();
                 q.pop();
                 Game const game = node->game;
 
